@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat vips-dev python3 make g++
+RUN apk add --no-cache libc6-compat openssl vips-dev python3 make g++
 WORKDIR /app
 
 # Install dependencies based on preferred package manager
@@ -13,13 +13,14 @@ RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client for Postgres
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/railway"
-RUN npx prisma generate --schema=./prisma/schema.postgresql.prisma || npx prisma generate
+RUN npx prisma generate --schema=./prisma/schema.postgresql.prisma
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -35,8 +36,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Install vips for sharp runtime
-RUN apk add --no-cache vips
+# Install vips and openssl for sharp and prisma runtime
+RUN apk add --no-cache vips openssl
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
