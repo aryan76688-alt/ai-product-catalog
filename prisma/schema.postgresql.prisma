@@ -1,0 +1,117 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id               String         @id @default(uuid())
+  srNo             Int?
+  productName      String
+  brand            String?
+  sku              String?
+  mrp              Float?
+  ptr              Float?
+  expiry           String?        // Normalized MM/YYYY
+  batchNumber      String?
+  manufacturer     String?
+  rawOcrText       String?
+  
+  originalImageUrl String
+  cleanImageUrl    String?
+  finalImageUrl    String?
+  
+  imageStatus      String         @default("UPLOADED")   // UPLOADED, CLEANED, FINALIZED, FAILED
+  ocrStatus        String         @default("PENDING")    // PENDING, COMPLETED, FAILED
+  matchStatus      String         @default("UNMATCHED")  // UNMATCHED, MATCHED, NEEDS_REVIEW, MANUAL
+  
+  mrpSource        String?        // OCR, CHAT, MANUAL
+  ptrSource        String?        // EXCEL, CHAT, MANUAL
+  expirySource     String?        // OCR, CHAT, MANUAL
+  
+  mrpConfidence    Float?         // 0.0 to 1.0
+  ptrConfidence    Float?         // 0.0 to 1.0
+  expiryConfidence Float?         // 0.0 to 1.0
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  images           ProductImage[]
+  jobs             ProcessingJob[]
+  auditLogs        AuditLog[]
+  matchedExcelRows ExcelRow[]
+}
+
+model ProductImage {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  originalUrl String
+  cleanUrl    String?
+  finalUrl    String?
+  status      String   @default("UPLOADED")
+  createdAt   DateTime @default(now())
+}
+
+model ExcelImport {
+  id          String     @id @default(uuid())
+  filename    String
+  totalRows   Int        @default(0)
+  matchedRows Int        @default(0)
+  status      String     @default("PENDING")
+  createdAt   DateTime   @default(now())
+  rows        ExcelRow[]
+}
+
+model ExcelRow {
+  id               String       @id @default(uuid())
+  importId         String
+  import           ExcelImport  @relation(fields: [importId], references: [id], onDelete: Cascade)
+  rawProductName   String
+  normalizedName   String
+  ptr              Float
+  sku              String?
+  matchedProductId String?
+  matchedProduct   Product?     @relation(fields: [matchedProductId], references: [id])
+  createdAt        DateTime     @default(now())
+}
+
+model ProcessingJob {
+  id           String    @id @default(uuid())
+  productId    String?
+  product      Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  jobType      String    // ANALYZE_OCR, MATCH_PTR, PROCESS_IMAGES, BATCH_FULL
+  status       String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  progress     Int       @default(0)         // 0 - 100
+  errorMessage String?
+  metadata     String?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  fieldName String
+  oldValue  String?
+  newValue  String?
+  source    String   // OCR, EXCEL, CHAT, MANUAL
+  createdAt DateTime @default(now())
+}
+
+model AiRequest {
+  id               String   @id @default(uuid())
+  provider         String   // openai, gemini
+  model            String
+  promptTokens     Int?
+  completionTokens Int?
+  durationMs       Int?
+  success          Boolean  @default(true)
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+}

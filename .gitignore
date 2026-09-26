@@ -1,0 +1,39 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env*.local
+.env
+!.env.example
+
+# Vercel / Railway
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# SQLite / Database
+*.db
+*.db-journal
+.postgres_data/
+
+# Uploaded and processed images
+/uploads/*
+!/uploads/.gitkeep
