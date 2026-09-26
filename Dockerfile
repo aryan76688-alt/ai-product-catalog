@@ -17,6 +17,7 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p /app/public
 
 # Generate Prisma client for Postgres
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/railway"
